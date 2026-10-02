@@ -3,40 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de VPN WireGuard</title>
+    <title>Gerador WireGuard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 40px; }
-        .container { max-width: 700px; margin: 0 auto; background: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        h2 { color: #333; margin-top: 0; text-align: center; }
-        button { background-color: #0052cc; color: white; border: none; padding: 15px 20px; font-size: 16px; border-radius: 6px; cursor: pointer; width: 100%; transition: background 0.3s; }
-        button:hover { background-color: #003d99; }
-        .result-box { margin-top: 30px; }
-        .alert { background-color: #e3f2fd; color: #0d47a1; padding: 15px; border-left: 5px solid #1976d2; border-radius: 4px; margin-bottom: 20px; font-family: monospace; font-size: 14px;}
-        textarea { width: 100%; height: 280px; padding: 15px; border: 1px solid #ccc; border-radius: 6px; font-family: monospace; font-size: 14px; box-sizing: border-box; background-color: #fafafa; resize: vertical; }
-        h3 { color: #444; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        :root {
+            --background: oklch(1 0 0);
+            --foreground: oklch(0.145 0.008 326);
+            --card: oklch(1 0 0);
+            --card-foreground: oklch(0.145 0.008 326);
+            --primary: oklch(0.212 0.019 322.12);
+            --primary-foreground: oklch(0.985 0 0);
+            --muted: oklch(0.96 0.003 325.6);
+            --muted-foreground: oklch(0.542 0.034 322.5);
+            --border: oklch(0.922 0.005 325.62);
+            --input: oklch(0.922 0.005 325.62);
+            --ring: oklch(0.711 0.019 323.02);
+            --radius: 0.625rem;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: var(--foreground);
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .shadcn-card {
+            background-color: var(--card);
+            color: var(--card-foreground);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        }
+
+        .shadcn-input {
+            border: 1px solid var(--input);
+            border-radius: calc(var(--radius) - 2px);
+            background-color: transparent;
+            transition: outline 0.15s ease;
+        }
+
+        .shadcn-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+        }
+
+        .shadcn-button {
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+            border-radius: calc(var(--radius) - 2px);
+            transition: opacity 0.2s;
+        }
+
+        .shadcn-button:hover {
+            opacity: 0.9;
+        }
+
+        .shadcn-muted {
+            background-color: var(--muted);
+            color: var(--foreground);
+            border: 1px solid var(--border);
+            border-radius: calc(var(--radius) - 2px);
+        }
     </style>
 </head>
-<body>
-
-<div class="container">
-    <h2>Gerador Automático WireGuard</h2>
-    <form method="POST" action="/generate">
-        <button type="submit">Gerar Novo Cliente VPN</button>
-    </form>
-
-    {% if config %}
-    <div class="result-box">
-        <h3>Dados para cadastrar no Mikrotik (Peers):</h3>
-        <div class="alert">
-            <strong>Public Key:</strong> {{ pubkey }}<br><br>
-            <strong>Allowed Address:</strong> {{ ip }}/32
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="shadcn-card w-full max-w-2xl p-6 sm:p-8">
+        <div class="mb-6 space-y-1.5">
+            <h2 class="text-2xl font-semibold tracking-tight">Novo Acesso WireGuard</h2>
+            <p class="text-sm" style="color: var(--muted-foreground)">Preencha o nome do usuário para gerar a configuração e o comando do Mikrotik.</p>
         </div>
         
-        <h3>Arquivo .conf (Para o dispositivo do cliente):</h3>
-        <textarea readonly spellcheck="false">{{ config }}</textarea>
-    </div>
-    {% endif %}
-</div>
+        <form method="POST" action="/generate" class="space-y-4">
+            <div class="space-y-2">
+                <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">IP Reservado (Próximo Automático)</label>
+                <input type="text" value="{{ next_ip }}" disabled class="shadcn-input flex h-10 w-full px-3 py-2 text-sm opacity-50 cursor-not-allowed bg-gray-50">
+            </div>
+            
+            <div class="space-y-2">
+                <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Nome da VPN (Usuário ou Dispositivo)</label>
+                <input type="text" name="vpn_name" required placeholder="Ex: Paloma_Notebook" class="shadcn-input flex h-10 w-full px-3 py-2 text-sm" value="{{ vpn_name if vpn_name else '' }}">
+            </div>
 
+            <button type="submit" class="shadcn-button flex h-10 w-full items-center justify-center px-4 py-2 text-sm font-medium mt-2">
+                Gerar Credenciais
+            </button>
+        </form>
+
+        {% if config %}
+        <div class="mt-8 space-y-6 pt-6" style="border-top: 1px solid var(--border)">
+            <div class="space-y-2">
+                <h3 class="text-sm font-medium leading-none">1. Comando para Terminal Mikrotik</h3>
+                <p class="text-xs" style="color: var(--muted-foreground)">Copie e cole este comando no New Terminal do Mikrotik para criar o Peer automaticamente.</p>
+                <textarea readonly spellcheck="false" onclick="this.select()" class="shadcn-muted flex w-full px-3 py-2 text-xs font-mono h-20 resize-none cursor-pointer hover:bg-gray-100 transition-colors">{{ mikrotik_cmd }}</textarea>
+            </div>
+
+            <div class="space-y-2">
+                <h3 class="text-sm font-medium leading-none">2. Configuração do Cliente (.conf)</h3>
+                <p class="text-xs" style="color: var(--muted-foreground)">Salve o texto abaixo como arquivo <strong>{{ vpn_name }}.conf</strong> e importe no aplicativo do WireGuard do usuário.</p>
+                <textarea readonly spellcheck="false" class="shadcn-input flex w-full px-3 py-2 text-sm font-mono h-64 resize-y bg-gray-50">{{ config }}</textarea>
+            </div>
+        </div>
+        {% endif %}
+    </div>
 </body>
 </html>
