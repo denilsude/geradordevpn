@@ -4,7 +4,8 @@ import subprocess
 from functools import wraps
 from flask import Flask, render_template, request, session, redirect, url_for, Response
 
-app = Flask(__name__)
+# Configura o Flask para servir arquivos estáticos a partir da pasta "public" que você criou
+app = Flask(__name__, static_folder='public', static_url_path='/public')
 app.secret_key = 'super_senha_secreta_wg_2026'
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -35,7 +36,6 @@ def requires_auth(f):
 def init_state():
     if not os.path.exists(STATE_FILE):
         with open(STATE_FILE, 'w') as f:
-            # last_ip_octet = 19 para que o próximo (primeiro) gerado seja o 20
             json.dump({"last_ip_octet": 19, "freed_ips": []}, f)
 
 def get_state():
@@ -78,19 +78,26 @@ def index():
     next_ip = peek_next_ip_octet()
     dados_gerados = session.pop('dados_gerados', None)
     
-    # Busca fila de IPs liberados para exibir
+    # Resgata dados de quando um IP é liberado manualmente
+    ip_liberado_msg = session.pop('ip_liberado_msg', None)
+    ip_liberado_cmd = session.pop('ip_liberado_cmd', None)
+    
     state = get_state()
     freed_ips = state.get("freed_ips", [])
     
     return render_template('index.html', 
                            next_ip=f"10.210.100.{next_ip}",
                            dados=dados_gerados,
-                           freed_ips=freed_ips)
+                           freed_ips=freed_ips,
+                           ip_liberado_msg=ip_liberado_msg,
+                           ip_liberado_cmd=ip_liberado_cmd)
 
 @app.route('/generate', methods=['POST'])
 @requires_auth
 def generate():
     vpn_name = request.form.get('vpn_name', 'SemNome').strip()
+    vpn_name_safe = vpn_name.replace(" ", "_")
+    
     ip_octet = get_next_ip_octet()
     privkey, pubkey = generate_keys()
     
@@ -107,8 +114,8 @@ AllowedIPs = 10.210.10.0/24, 10.210.20.0/24, 10.210.30.0/24, 10.210.60.0/24, 10.
 Endpoint = 177.126.97.49:51820
 """
     
-    mikrotik_cmd_add = f'/interface wireguard peers add interface="wireguard-server" public-key="{pubkey}" allowed-address="{client_ip}/32" comment="{vpn_name}"'
-    mikrotik_cmd_remove = f'/interface wireguard peers remove [find comment="{vpn_name}"]'
+    mikrotik_cmd_add = f'/interface wireguard peers add interface="wireguard-server" public-key="{pubkey}" allowed-address="{client_ip}/32" comment="{vpn_name_safe}"'
+    mikrotik_cmd_remove = f'/interface wireguard peers remove [find comment="{vpn_name_safe}"]'
     
     session['dados_gerados'] = {
         'config': config,
@@ -116,7 +123,7 @@ Endpoint = 177.126.97.49:51820
         'ip': client_ip,
         'mikrotik_cmd': mikrotik_cmd_add,
         'mikrotik_cmd_remove': mikrotik_cmd_remove,
-        'vpn_name': vpn_name
+        'vpn_name': vpn_name_safe
     }
     
     return redirect(url_for('index'))
@@ -128,9 +135,15 @@ def free_ip():
     if ip_to_free.isdigit():
         ip_num = int(ip_to_free)
         data = get_state()
+        
         if ip_num not in data.get("freed_ips", []) and ip_num <= data.get("last_ip_octet", 19):
             data.setdefault("freed_ips", []).append(ip_num)
             save_state(data)
+            
+            # Gera a mensagem e o comando focado estritamente em apagar o IP no Mikrotik
+            session['ip_liberado_msg'] = f'IP 10.210.100.{ip_num} colocado na fila de reuso!'
+            session['ip_liberado_cmd'] = f'/interface wireguard peers remove [find allowed-address="10.210.100.{ip_num}/32"]'
+            
     return redirect(url_for('index'))
 
 @app.route('/reset', methods=['POST'])

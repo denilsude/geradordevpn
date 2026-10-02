@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerador WireGuard</title>
+    
+    <!-- Configuração do Favicon -->
+    <link rel="icon" type="image/png" href="/public/favicon/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/public/favicon/favicon.svg" />
+    <link rel="shortcut icon" href="/public/favicon/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/public/favicon/apple-touch-icon.png" />
+    <link rel="manifest" href="/public/favicon/site.webmanifest" />
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -81,23 +89,36 @@
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
     
-    <!-- Botão Dark Mode -->
     <button onclick="toggleTheme()" class="absolute top-4 right-4 bg-secondary text-secondary-foreground p-2 rounded-md hover:opacity-80 transition flex items-center gap-2 text-sm font-semibold border border-border">
         <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
         Alternar Tema
     </button>
 
-    <div class="bg-card text-card-foreground border border-border rounded-[var(--radius)] w-full max-w-2xl p-6 sm:p-8 shadow-sm">
+    <div class="bg-card text-card-foreground border border-border rounded-[var(--radius)] w-full max-w-2xl p-6 sm:p-8 shadow-sm my-8">
         
         <div class="mb-6 space-y-1.5 flex justify-between items-start">
             <div>
                 <h2 class="text-2xl font-semibold tracking-tight">Novo Acesso WireGuard</h2>
                 <p class="text-sm text-muted-foreground">Preencha o nome do usuário para gerar a configuração e o comando do Mikrotik.</p>
             </div>
-            <div class="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-md font-semibold border border-border">Acesso Autenticado</div>
+            <div class="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-md font-semibold border border-border">Autenticado</div>
         </div>
+
+        <!-- Feedback de Liberação de IP com Comando de Remoção -->
+        {% if ip_liberado_msg %}
+        <div class="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-md">
+            <p class="text-sm font-semibold text-yellow-800 dark:text-yellow-400 mb-3">⚠️ {{ ip_liberado_msg }}</p>
+            <div class="space-y-2">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-medium text-yellow-900 dark:text-yellow-300">Execute este comando para remover o IP do Mikrotik:</h3>
+                    <button type="button" onclick="copyText('cmd_remove_ip', this)" class="text-xs bg-white dark:bg-black text-black dark:text-white px-3 py-1 rounded border border-yellow-300 dark:border-yellow-600 hover:opacity-80 transition font-medium">Copiar</button>
+                </div>
+                <textarea id="cmd_remove_ip" readonly class="bg-white dark:bg-black text-foreground flex w-full px-3 py-2 text-xs font-mono h-10 resize-none rounded-[calc(var(--radius)-2px)] border border-yellow-300 dark:border-yellow-700">{{ ip_liberado_cmd }}</textarea>
+            </div>
+        </div>
+        {% endif %}
         
-        <!-- Formulário de Geração -->
+        <!-- Formulário -->
         <form method="POST" action="/generate" class="space-y-4">
             <div class="space-y-2">
                 <label class="text-sm font-medium">IP Reservado (Próximo Automático)</label>
@@ -119,7 +140,7 @@
             </button>
         </form>
 
-        <!-- Resultados Gerados -->
+        <!-- Resultados -->
         {% if dados %}
         <div class="mt-8 space-y-6 pt-6 border-t border-border">
             <div class="p-3 bg-green-100 dark:bg-green-900 border border-green-200 dark:border-green-800 rounded-md text-green-800 dark:text-green-100">
@@ -127,38 +148,43 @@
             </div>
 
             <div class="space-y-2">
-                <h3 class="text-sm font-medium">1. Comando para Adicionar no Mikrotik</h3>
-                <textarea readonly onclick="this.select()" class="bg-muted text-foreground flex w-full px-3 py-2 text-xs font-mono h-16 resize-none rounded-[calc(var(--radius)-2px)] border border-border cursor-pointer hover:opacity-80 transition">{{ dados.mikrotik_cmd }}</textarea>
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-medium">1. Comando para Adicionar no Mikrotik</h3>
+                    <button type="button" onclick="copyText('cmd_add', this)" class="text-xs bg-secondary text-secondary-foreground px-3 py-1 rounded border border-border hover:opacity-80 transition font-medium">Copiar</button>
+                </div>
+                <textarea id="cmd_add" readonly class="bg-muted text-foreground flex w-full px-3 py-2 text-xs font-mono h-16 resize-none rounded-[calc(var(--radius)-2px)] border border-border">{{ dados.mikrotik_cmd }}</textarea>
             </div>
 
             <div class="space-y-2">
-                <h3 class="text-sm font-medium">2. Comando para Remover no Mikrotik (Futuro)</h3>
-                <p class="text-xs text-muted-foreground">Guarde este comando para remover o acesso quando o usuário for desligado.</p>
-                <textarea readonly onclick="this.select()" class="bg-muted text-foreground flex w-full px-3 py-2 text-xs font-mono h-10 resize-none rounded-[calc(var(--radius)-2px)] border border-border cursor-pointer hover:opacity-80 transition">{{ dados.mikrotik_cmd_remove }}</textarea>
-            </div>
-
-            <div class="space-y-2">
-                <h3 class="text-sm font-medium">3. Configuração do Cliente (.conf)</h3>
-                <p class="text-xs text-muted-foreground">Salve e envie para o usuário clicar em "Importar túneis de arquivo...".</p>
-                <textarea readonly onclick="this.select()" class="bg-transparent text-foreground flex w-full px-3 py-2 text-sm font-mono h-56 resize-y rounded-[calc(var(--radius)-2px)] border border-input cursor-pointer">{{ dados.config }}</textarea>
+                <div class="flex justify-between items-center mb-1">
+                    <h3 class="text-sm font-medium">2. Configuração do Cliente</h3>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="copyText('wg_config', this)" class="text-xs bg-secondary text-secondary-foreground px-3 py-1 rounded border border-border hover:opacity-80 transition font-medium">Copiar Texto</button>
+                        <button type="button" onclick="downloadConfig('{{ dados.vpn_name }}', 'wg_config')" class="text-xs bg-primary text-primary-foreground px-3 py-1 rounded border hover:opacity-90 transition font-medium flex items-center gap-1 shadow-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            Baixar .conf
+                        </button>
+                    </div>
+                </div>
+                <textarea id="wg_config" readonly class="bg-transparent text-foreground flex w-full px-3 py-2 text-sm font-mono h-56 resize-y rounded-[calc(var(--radius)-2px)] border border-input">{{ dados.config }}</textarea>
             </div>
         </div>
         {% endif %}
 
-        <!-- Zona de Perigo / Ações Administrativas -->
+        <!-- Administração -->
         <div class="mt-10 pt-6 border-t border-border space-y-6">
             <h3 class="text-sm font-bold text-destructive">🛠️ Administração e Manutenção</h3>
             
             <div class="flex flex-col sm:flex-row gap-4 items-end">
                 <form method="POST" action="/free_ip" class="flex-1 space-y-2 w-full">
-                    <label class="text-xs font-medium text-muted-foreground">Liberar IP (Ex: Digite apenas 21 para o IP 10.210.100.21)</label>
+                    <label class="text-xs font-medium text-muted-foreground">Desligamento: Liberar IP (Ex: Digite 25 para remover o IP 10.210.100.25)</label>
                     <div class="flex gap-2">
-                        <input type="number" name="ip_octet" required placeholder="Ex: 21" class="shadcn-input flex h-10 w-full px-3 py-2 text-sm border border-input rounded-[calc(var(--radius)-2px)] bg-transparent">
-                        <button type="submit" class="bg-secondary text-secondary-foreground px-4 py-2 text-sm font-medium rounded-[calc(var(--radius)-2px)] border border-border hover:opacity-80 whitespace-nowrap">Liberar IP</button>
+                        <input type="number" name="ip_octet" required placeholder="Ex: 25" class="shadcn-input flex h-10 w-full px-3 py-2 text-sm border border-input rounded-[calc(var(--radius)-2px)] bg-transparent">
+                        <button type="submit" class="bg-secondary text-secondary-foreground px-4 py-2 text-sm font-medium rounded-[calc(var(--radius)-2px)] border border-border hover:opacity-80 whitespace-nowrap">Liberar e Obter Comando</button>
                     </div>
                 </form>
 
-                <form method="POST" action="/reset" onsubmit="return confirm('ATENÇÃO: Isso vai resetar o contador de volta para o IP 10.210.100.20 e apagar a fila de IPs liberados. Tem certeza?');">
+                <form method="POST" action="/reset" onsubmit="return confirm('ATENÇÃO: Isso vai resetar a contagem para 20 e apagar a fila de IPs liberados. Tem certeza?');">
                     <button type="submit" class="bg-destructive text-white h-10 px-4 py-2 text-sm font-medium rounded-[calc(var(--radius)-2px)] hover:opacity-90 whitespace-nowrap">
                         Resetar Sistema (IP .20)
                     </button>
@@ -169,18 +195,49 @@
     </div>
 
     <script>
-        // Lógica simples do Dark Mode
         function toggleTheme() {
             document.documentElement.classList.toggle('dark');
             const isDark = document.documentElement.classList.contains('dark');
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
         }
 
-        // Verifica a preferência salva ao carregar a página
         if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
+        }
+
+        function copyText(elementId, btnElement) {
+            const textToCopy = document.getElementById(elementId).value;
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalText = btnElement.innerText;
+                const originalClass = btnElement.className;
+                
+                btnElement.innerText = "Copiado! ✓";
+                btnElement.className = "text-xs bg-green-600 text-white px-3 py-1 rounded border border-green-700 font-medium transition-all";
+                
+                setTimeout(() => {
+                    btnElement.innerText = originalText;
+                    btnElement.className = originalClass;
+                }, 2000);
+            }).catch(err => {
+                console.error('Falha ao copiar', err);
+                alert('Não foi possível copiar. Selecione o texto manualmente.');
+            });
+        }
+
+        function downloadConfig(vpnName, elementId) {
+            const configText = document.getElementById(elementId).value;
+            const blob = new Blob([configText], { type: "text/plain;charset=utf-8" });
+            const url = window.URL.createObjectURL(blob);
+            
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = vpnName + ".conf";
+            
+            document.body.appendChild(link);
+            link.click();
+            
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
         }
     </script>
 </body>
