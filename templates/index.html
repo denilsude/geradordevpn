@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerador WireGuard</title>
     
-    <!-- Configuração do Favicon -->
     <link rel="icon" type="image/png" href="/public/favicon/favicon-96x96.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="/public/favicon/favicon.svg" />
     <link rel="shortcut icon" href="/public/favicon/favicon.ico" />
@@ -85,26 +84,70 @@
             outline: none;
             box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
         }
+        
+        /* Força a aparência maiúscula também no frontend na digitação */
+        .input-uppercase {
+            text-transform: uppercase;
+        }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
     
-    <button onclick="toggleTheme()" class="absolute top-4 right-4 bg-secondary text-secondary-foreground p-2 rounded-md hover:opacity-80 transition flex items-center gap-2 text-sm font-semibold border border-border">
-        <svg id="theme-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-        Alternar Tema
-    </button>
+    <div class="absolute top-4 right-4 flex gap-3">
+        {% if not show_login %}
+        <a href="/logout" class="bg-destructive text-white p-2 px-4 rounded-md hover:opacity-80 transition flex items-center text-sm font-semibold shadow-sm">
+            Sair (Logout)
+        </a>
+        {% endif %}
+        <button onclick="toggleTheme()" class="bg-secondary text-secondary-foreground p-2 rounded-md hover:opacity-80 transition flex items-center gap-2 text-sm font-semibold border border-border shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            Tema
+        </button>
+    </div>
 
+    {% if show_login %}
+    <div class="bg-card text-card-foreground border border-border rounded-[var(--radius)] w-full max-w-md p-6 sm:p-8 shadow-sm">
+        <h2 class="text-2xl font-bold tracking-tight text-center mb-2">Acesso Restrito</h2>
+        <p class="text-sm text-muted-foreground text-center mb-6">Insira suas credenciais para usar o Gerador VPN.</p>
+        
+        {% if error %}
+        <div class="p-3 mb-4 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-800 rounded-md">
+            <p class="text-sm text-red-800 dark:text-red-400 font-semibold text-center">{{ error }}</p>
+        </div>
+        {% endif %}
+        
+        <form method="POST" action="/login" class="space-y-4">
+            <div class="space-y-2">
+                <label class="text-sm font-medium">Usuário</label>
+                <input type="text" name="username" required autofocus class="shadcn-input flex h-10 w-full px-3 py-2 text-sm border border-input rounded-[calc(var(--radius)-2px)] bg-transparent">
+            </div>
+            <div class="space-y-2">
+                <label class="text-sm font-medium">Senha</label>
+                <input type="password" name="password" required class="shadcn-input flex h-10 w-full px-3 py-2 text-sm border border-input rounded-[calc(var(--radius)-2px)] bg-transparent">
+            </div>
+            <button type="submit" class="bg-primary text-primary-foreground flex h-10 w-full items-center justify-center px-4 py-2 text-sm font-medium rounded-[calc(var(--radius)-2px)] hover:opacity-90 transition mt-6">
+                Entrar no Sistema
+            </button>
+        </form>
+    </div>
+
+    {% else %}
     <div class="bg-card text-card-foreground border border-border rounded-[var(--radius)] w-full max-w-2xl p-6 sm:p-8 shadow-sm my-8">
         
         <div class="mb-6 space-y-1.5 flex justify-between items-start">
             <div>
                 <h2 class="text-2xl font-semibold tracking-tight">Novo Acesso WireGuard</h2>
-                <p class="text-sm text-muted-foreground">Preencha o nome do usuário para gerar a configuração e o comando do Mikrotik.</p>
+                <p class="text-sm text-muted-foreground">Preencha o nome do usuário para gerar a configuração.</p>
             </div>
             <div class="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded-md font-semibold border border-border">Autenticado</div>
         </div>
 
-        <!-- Feedback de Liberação de IP com Comando de Remoção -->
+        {% if error_msg %}
+        <div class="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md">
+            <p class="text-sm font-semibold text-red-800 dark:text-red-400 text-center">{{ error_msg }}</p>
+        </div>
+        {% endif %}
+
         {% if ip_liberado_msg %}
         <div class="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-md">
             <p class="text-sm font-semibold text-yellow-800 dark:text-yellow-400 mb-3">⚠️ {{ ip_liberado_msg }}</p>
@@ -118,7 +161,7 @@
         </div>
         {% endif %}
         
-        <!-- Formulário -->
+        {% if not dados %}
         <form method="POST" action="/generate" class="space-y-4">
             <div class="space-y-2">
                 <label class="text-sm font-medium">IP Reservado (Próximo Automático)</label>
@@ -131,18 +174,19 @@
             </div>
             
             <div class="space-y-2">
-                <label class="text-sm font-medium">Nome da VPN (Usuário ou Dispositivo)</label>
-                <input type="text" name="vpn_name" required placeholder="Ex: Paloma_Notebook" class="shadcn-input flex h-10 w-full px-3 py-2 text-sm border border-input rounded-[calc(var(--radius)-2px)] bg-transparent">
+                <label class="text-sm font-medium">Nome da VPN (O sistema adicionará 'VPN-' automaticamente)</label>
+                <!-- A classe input-uppercase força a visualização em maiúsculo -->
+                <input type="text" name="vpn_name" required placeholder="Ex: DENILSON" class="input-uppercase shadcn-input flex h-10 w-full px-3 py-2 text-sm border border-input rounded-[calc(var(--radius)-2px)] bg-transparent">
             </div>
 
             <button type="submit" class="bg-primary text-primary-foreground flex h-10 w-full items-center justify-center px-4 py-2 text-sm font-medium rounded-[calc(var(--radius)-2px)] hover:opacity-90 transition">
                 Gerar Credenciais
             </button>
         </form>
+        {% endif %}
 
-        <!-- Resultados -->
         {% if dados %}
-        <div class="mt-8 space-y-6 pt-6 border-t border-border">
+        <div class="space-y-6">
             <div class="p-3 bg-green-100 dark:bg-green-900 border border-green-200 dark:border-green-800 rounded-md text-green-800 dark:text-green-100">
                 <p class="text-sm font-semibold">✅ Credenciais geradas com sucesso para: {{ dados.vpn_name }}</p>
             </div>
@@ -168,10 +212,16 @@
                 </div>
                 <textarea id="wg_config" readonly class="bg-transparent text-foreground flex w-full px-3 py-2 text-sm font-mono h-56 resize-y rounded-[calc(var(--radius)-2px)] border border-input">{{ dados.config }}</textarea>
             </div>
+            
+            <div class="pt-4 border-t border-border mt-6">
+                <a href="/" class="bg-secondary text-secondary-foreground flex h-12 w-full items-center justify-center px-4 py-2 text-sm font-bold rounded-[calc(var(--radius)-2px)] border border-border hover:opacity-80 transition shadow-sm">
+                    ✨ Limpar Tela e Criar Nova VPN
+                </a>
+            </div>
         </div>
         {% endif %}
 
-        <!-- Administração -->
+        {% if not dados %}
         <div class="mt-10 pt-6 border-t border-border space-y-6">
             <h3 class="text-sm font-bold text-destructive">🛠️ Administração e Manutenção</h3>
             
@@ -180,19 +230,15 @@
                     <label class="text-xs font-medium text-muted-foreground">Desligamento: Liberar IP (Ex: Digite 25 para remover o IP 10.210.100.25)</label>
                     <div class="flex gap-2">
                         <input type="number" name="ip_octet" required placeholder="Ex: 25" class="shadcn-input flex h-10 w-full px-3 py-2 text-sm border border-input rounded-[calc(var(--radius)-2px)] bg-transparent">
-                        <button type="submit" class="bg-secondary text-secondary-foreground px-4 py-2 text-sm font-medium rounded-[calc(var(--radius)-2px)] border border-border hover:opacity-80 whitespace-nowrap">Liberar e Obter Comando</button>
+                        <button type="submit" class="bg-secondary text-secondary-foreground px-4 py-2 text-sm font-medium rounded-[calc(var(--radius)-2px)] border border-border hover:opacity-80 whitespace-nowrap">Liberar IP no Gerador</button>
                     </div>
-                </form>
-
-                <form method="POST" action="/reset" onsubmit="return confirm('ATENÇÃO: Isso vai resetar a contagem para 20 e apagar a fila de IPs liberados. Tem certeza?');">
-                    <button type="submit" class="bg-destructive text-white h-10 px-4 py-2 text-sm font-medium rounded-[calc(var(--radius)-2px)] hover:opacity-90 whitespace-nowrap">
-                        Resetar Sistema (IP .20)
-                    </button>
                 </form>
             </div>
         </div>
+        {% endif %}
 
     </div>
+    {% endif %}
 
     <script>
         function toggleTheme() {
