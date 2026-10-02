@@ -52,6 +52,7 @@
             color: var(--primary-foreground);
             border-radius: calc(var(--radius) - 2px);
             transition: opacity 0.2s;
+            cursor: pointer;
         }
 
         .shadcn-button:hover {
@@ -68,9 +69,12 @@
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
     <div class="shadcn-card w-full max-w-2xl p-6 sm:p-8">
-        <div class="mb-6 space-y-1.5">
-            <h2 class="text-2xl font-semibold tracking-tight">Novo Acesso WireGuard</h2>
-            <p class="text-sm" style="color: var(--muted-foreground)">Preencha o nome do usuário para gerar a configuração e o comando do Mikrotik.</p>
+        <div class="mb-6 space-y-1.5 flex justify-between items-start">
+            <div>
+                <h2 class="text-2xl font-semibold tracking-tight">Novo Acesso WireGuard</h2>
+                <p class="text-sm" style="color: var(--muted-foreground)">Preencha o nome do usuário para gerar a configuração e o comando do Mikrotik.</p>
+            </div>
+            <div class="text-xs bg-gray-200 px-2 py-1 rounded-md font-semibold text-gray-700">Acesso Autenticado</div>
         </div>
         
         <form method="POST" action="/generate" class="space-y-4">
@@ -81,7 +85,8 @@
             
             <div class="space-y-2">
                 <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Nome da VPN (Usuário ou Dispositivo)</label>
-                <input type="text" name="vpn_name" required placeholder="Ex: Paloma_Notebook" class="shadcn-input flex h-10 w-full px-3 py-2 text-sm" value="{{ vpn_name if vpn_name else '' }}">
+                <!-- Limpa o nome se a página foi recarregada -->
+                <input type="text" name="vpn_name" required placeholder="Ex: Paloma_Notebook" class="shadcn-input flex h-10 w-full px-3 py-2 text-sm">
             </div>
 
             <button type="submit" class="shadcn-button flex h-10 w-full items-center justify-center px-4 py-2 text-sm font-medium mt-2">
@@ -89,18 +94,22 @@
             </button>
         </form>
 
-        {% if config %}
+        {% if dados %}
         <div class="mt-8 space-y-6 pt-6" style="border-top: 1px solid var(--border)">
+            <div class="p-3 bg-green-50 border border-green-200 rounded-md">
+                <p class="text-sm text-green-800 font-semibold">Credenciais geradas com sucesso para: {{ dados.vpn_name }}</p>
+            </div>
+
             <div class="space-y-2">
                 <h3 class="text-sm font-medium leading-none">1. Comando para Terminal Mikrotik</h3>
                 <p class="text-xs" style="color: var(--muted-foreground)">Copie e cole este comando no New Terminal do Mikrotik para criar o Peer automaticamente.</p>
-                <textarea readonly spellcheck="false" onclick="this.select()" class="shadcn-muted flex w-full px-3 py-2 text-xs font-mono h-20 resize-none cursor-pointer hover:bg-gray-100 transition-colors">{{ mikrotik_cmd }}</textarea>
+                <textarea readonly spellcheck="false" onclick="this.select()" class="shadcn-muted flex w-full px-3 py-2 text-xs font-mono h-20 resize-none cursor-pointer hover:bg-gray-100 transition-colors">{{ dados.mikrotik_cmd }}</textarea>
             </div>
 
             <div class="space-y-2">
                 <h3 class="text-sm font-medium leading-none">2. Configuração do Cliente (.conf)</h3>
-                <p class="text-xs" style="color: var(--muted-foreground)">Salve o texto abaixo como arquivo <strong>{{ vpn_name }}.conf</strong> e importe no aplicativo do WireGuard do usuário.</p>
-                <textarea readonly spellcheck="false" class="shadcn-input flex w-full px-3 py-2 text-sm font-mono h-64 resize-y bg-gray-50">{{ config }}</textarea>
+                <p class="text-xs" style="color: var(--muted-foreground)">Salve o texto abaixo como arquivo <strong>{{ dados.vpn_name }}.conf</strong> e importe no aplicativo do WireGuard do usuário.</p>
+                <textarea readonly spellcheck="false" onclick="this.select()" class="shadcn-input flex w-full px-3 py-2 text-sm font-mono h-64 resize-y bg-gray-50 cursor-pointer">{{ dados.config }}</textarea>
             </div>
         </div>
         {% endif %}
