@@ -1,0 +1,12 @@
+[Unit]
+Description=Gerador de Configuracao WireGuard
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/opt/wg-generator
+ExecStart=/usr/bin/python3 /opt/wg-generator/app.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

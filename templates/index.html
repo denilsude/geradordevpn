@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de VPN WireGuard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 40px; }
+        .container { max-width: 700px; margin: 0 auto; background: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h2 { color: #333; margin-top: 0; text-align: center; }
+        button { background-color: #0052cc; color: white; border: none; padding: 15px 20px; font-size: 16px; border-radius: 6px; cursor: pointer; width: 100%; transition: background 0.3s; }
+        button:hover { background-color: #003d99; }
+        .result-box { margin-top: 30px; }
+        .alert { background-color: #e3f2fd; color: #0d47a1; padding: 15px; border-left: 5px solid #1976d2; border-radius: 4px; margin-bottom: 20px; font-family: monospace; font-size: 14px;}
+        textarea { width: 100%; height: 280px; padding: 15px; border: 1px solid #ccc; border-radius: 6px; font-family: monospace; font-size: 14px; box-sizing: border-box; background-color: #fafafa; resize: vertical; }
+        h3 { color: #444; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Gerador Automático WireGuard</h2>
+    <form method="POST" action="/generate">
+        <button type="submit">Gerar Novo Cliente VPN</button>
+    </form>
+
+    {% if config %}
+    <div class="result-box">
+        <h3>Dados para cadastrar no Mikrotik (Peers):</h3>
+        <div class="alert">
+            <strong>Public Key:</strong> {{ pubkey }}<br><br>
+            <strong>Allowed Address:</strong> {{ ip }}/32
+        </div>
+        
+        <h3>Arquivo .conf (Para o dispositivo do cliente):</h3>
+        <textarea readonly spellcheck="false">{{ config }}</textarea>
+    </div>
+    {% endif %}
+</div>
+
+</body>
+</html>
